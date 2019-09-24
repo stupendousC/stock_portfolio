@@ -1,0 +1,168 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Ready to sell some stocks?
+{% endblock %}
+
+{% block main %}
+    <h3>Make it rain!</h3><br>
+    <form action = "/sell", method = "POST">
+    <table class="table table-striped table-bordered" style="width:100%">
+        <thead>
+            <tr id="headerRow">
+                    {% for header in tableHeader %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+            </tr>
+        </thead>
+
+        <tbody id="bodyRows">
+                <tr>
+                <td><!--'required' on drag-down select menus don't work!!!-->
+                    <select name="symbol1" required autofocus onchange="checkSymbol(this.value, this.name);">
+                        <option disabled selected>Select Symbol</option>
+                        {% for row in portfolio %}
+                        <option>        {{row["symbol"]}}    </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td id="company1"></td>
+                <td id="price1"></td>
+                <td><input type="number" name="qty1" placeholder="how many?" min = "1" required></td>
+                <td id="qtyPortfolio1"></td>
+                </tr>
+        </tbody>
+
+    </table>
+
+    <div class="alert alert-primary" id="cashStatement">You have {{cash}} in your account</div>
+    <div class="alert alert-warning" id="msg" hidden></div>
+
+    <button class="btn btn-secondary" type="reset">Reset</button>
+    <button class="btn btn-secondary" type = "button" onclick=addMoreRows()>More rows please</button><br><br>
+    <button class="btn btn-primary" type="submit">SELL</button>
+    </form>
+
+    <script>
+
+    // GENERATING more rows/fields.
+    var tableBody = document.getElementById("bodyRows");
+    var currRowNum = 1;
+    var symbolName = "";
+    var qtyName = "";
+    var companyId = "";     // using ID so I can use innerHTML later
+    var priceId = "";       // using ID so I can use innerHTML later
+    var qtyPortfolioId = ""; // using ID so I can use innerHTML later
+
+    // rowTemplateA+ newSymbolId + rowTemplateB + newQtyId + rowTemplate C
+    var rowTemplateA = '<tr><td><select name=';
+    var rowTemplateB = ' onchange="checkSymbol(this.value, this.name);"><option disabled selected>Select Symbol</option>{% for row in portfolio %}<option>{{row["symbol"]}} </option>{% endfor %}</td><td id=';
+    var rowTemplateC = '></td><td id=';
+    var rowTemplateD = '></td><td><input type="number" name=';
+    var rowTemplateE = ' placeholder="how many?" min = "0"></td><td id=';
+    var rowTemplateF = '></td></tr>';
+
+    function genNextRowNameOrIds() {
+        currRowNum += 1;
+        symbolName = ("symbol"+currRowNum);
+        qtyName = ("qty"+currRowNum);
+        companyId = "company"+currRowNum;
+        priceId = "price"+currRowNum;
+        qtyPortfolioId = "qtyPortfolio"+currRowNum;
+        return [symbolName, qtyName, companyId, priceId, qtyPortfolioId];
+    }
+
+    function addMoreRows() {
+        var nextRowNameOrIds = genNextRowNameOrIds();
+        var symbolName = nextRowNameOrIds[0];
+        var qtyName = nextRowNameOrIds[1];
+        var companyId = nextRowNameOrIds[2];
+        var priceId = nextRowNameOrIds[3];
+        var qtyPortfolioId = nextRowNameOrIds[4];
+        console.log("ADDED:", nextRowNameOrIds);
+        tableBody.innerHTML += (rowTemplateA+symbolName+rowTemplateB+companyId+rowTemplateC+priceId+rowTemplateD+qtyName+rowTemplateE+qtyPortfolioId+rowTemplateF);
+    }
+
+    // initial/nonvital ERROR VALIDATION (will have a complete 2nd screening after submitting, in case user turns off JS)
+        // qty fields require no additional error check at this stage
+        // type="number" and min="1" already screen out text, floats, negatives, zeros, and non-viable float numbers (ex: 5.0 is ok, 5.5 is not)
+
+        // show live quote via AJAX before sending off to next route
+
+    function checkSymbol(symbol2Check, symbolName) {    // called when select drag-down menu onchange triggered
+        var rowNumber = getRowNumber(symbolName);
+
+        // via AJAX, query /checkSymbol to return quote info to display if symbol valid
+        var ajax = new XMLHttpRequest();
+        ajax.onreadystatechange = function() {
+            if (ajax.readyState == 4 && ajax.status == 200) {
+                var lookupResults = JSON.parse(ajax.responseText);  //JSON.parse() b/c I want to be able to use it as JS obj
+                //console.log("lookup() returns", lookupResults);
+
+                if (lookupResults == false) {   // shouldn't be false, checking just in case
+                    console.log("error! this shouldn't be happening, checking just in case");
+                    return;                }
+
+                // update companyName & priceName var
+                var companyName = "company"+rowNumber;
+                var priceName = "price"+rowNumber;
+                var company = lookupResults['name'];
+                var price = lookupResults['price'];
+                console.log("SHOW:", company, price);
+
+                var companyField = document.getElementById(companyName);
+                var priceField = document.getElementById(priceName);
+                companyField.innerHTML = company;
+                priceField.innerHTML = price;
+            }        };
+
+        // via AJAX, query /checkQtyPortfolio to return qtyShares in db for display here
+        var ajax2 = new XMLHttpRequest();
+        ajax2.onreadystatechange = function() {
+            if (ajax2.readyState == 4 && ajax2.status == 200) {
+                var qtyShares = JSON.parse(ajax2.responseText); //JSON.parse() b/c I want to be able to use it as JS obj
+                console.log("portfolio has #", qtyShares, "of this stock");
+
+                if (qtyShares == false) {   // shouldn't be false, checking just in case
+                    console.log("error! this shouldn't be happening, checking just in case");
+                    return;                }
+
+                var qtyPortfolioId = "qtyPortfolio"+rowNumber;
+                var qtyPortfolioField = document.getElementById(qtyPortfolioId);
+                qtyPortfolioField.innerHTML = qtyShares;
+            }        };
+
+        // open the requested file & transmit data      // tried ajax.open("POST") but unsuccessful
+        ajax.open("GET", "/checkSymbol?symbol=" + symbol2Check, true); // Return lookup() quote if lookup(symbol) is valid in JSON format, else False
+        ajax.send();
+
+        ajax2.open("GET", "/checkQtyPortfolio?symbol=" + symbol2Check, true);
+        ajax2.send();
+    }
+
+    function getRowNumber(symbolName) {
+        // support for AJAX
+        var rowNumList = [];
+        for (let i = 6; i< symbolName.length; i++) {
+            rowNumList.push(symbolName[i]);                        }
+        var rowNumber = list2Int(rowNumList);
+        return rowNumber;
+    }
+
+
+    function list2Int(numberList) {
+        // Takes a list of ["1","2","3"] individual single digit numerical strings, and returns as a whole integer, like 123.
+        var result = 0;
+        var tier = 1;
+        for (var i=numberList.length; i > 0; i--){
+            result += tier*parseInt(numberList[i-1]);
+            tier *= 10;        }
+        //console.log("TA DA", result);
+        return result;
+    }
+
+    </script>
+
+{% endblock %}
+
+

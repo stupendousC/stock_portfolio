@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Looking for quotes
+{% endblock %}
+
+{% block main %}
+    <form action="/quote" method="post">
+        <h3>Enter the stock symbols and we'll look up the quotes!</h3><br>
+        <div class="form-group" id="allSymbols">
+            <input autocomplete="off" autofocus class="form-control" name="symbol1" id="symbol1" placeholder="Stock Symbol" type="text" required><br><br>
+        </div>
+        <button class="btn btn-secondary" type = "button" onclick=addMoreFields()>More fields please</button>
+        <button class="btn btn-secondary" type="reset">Reset</button><br><br>
+        <button class="btn btn-primary" type="submit">Get quotes</button>
+    </form>
+
+    <script>
+    var allSymbols = document.getElementById("allSymbols");
+    var currSymbolNum = 1;
+    var symbolName = "";
+
+    function genNextSymbolName() {
+        currSymbolNum += 1;
+        symbolName = ("symbol"+currSymbolNum);
+        // console.log("new symbolName is", symbolName);
+        return symbolName;
+    }
+
+    function addMoreFields() {
+        var symbolName = genNextSymbolName();
+        allSymbols.innerHTML += ('<input autocomplete="off" autofocus class="form-control" placeholder="Stock Symbol" type="text" name=' + symbolName + ' id=' + symbolName + '><br><br>');
+        //console.log("allSymbols.childElementCount =", allSymbols.childElementCount, "includes <br>!");
+    }
+
+    </script>
+
+{% endblock %}
+
+
+<!--
+    // CAN"T GET IT TO WORK
+    var symbolsList = [];
+    function sendViaAJAX(obj2Send) {
+        var ajax = new XMLHttpRequest();
+        // symbolsList = JSON.parse(symbolsList);
+        // I don't think I need to define onreadystatechange b/c I'm doing this as part of .onsubmit()
+        ajax.open("POST", "/processJSON", true);
+        ajax.send(symbolsList);
+    }
+
+    document.querySelector("form").onsubmit = function(e) {
+        e.preventDefault(); // don't submit form yet
+        // at least symbol1 filled out, via <required>
+        // gather up all the symbols into a list
+        for (let i=1; i<currSymbolNum+1; i++) {
+            console.log("Looking at symbol"+i, "which has value", document.getElementById('symbol'+i).value);
+            symbolsList.push(document.getElementById('symbol'+i).value);
+        }
+        console.log("symbolsList is...", symbolsList, typeof(symbolsList));
+
+        return;
+
+
+-->

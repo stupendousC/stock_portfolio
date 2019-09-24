@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block main %}
+    <h3>Register New User</h3><br>
+    <form action="/register" method="post">
+        <div class="form-group">
+            <input autocomplete="off" autofocus class="form-control" name="username" placeholder="Username" type="text" required onchange="checkAvail(this.value);">
+        </div>
+        <div class="form-group">
+            <input class="form-control" name="password" id = "password" placeholder="Password" type="password" required><br>
+            <input class="form-control" name="confirmation" id = "confirmation" placeholder="Password Confirmation" type="password" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Register</button>
+    </form>
+
+    <script>
+    var nameAvail;
+    function checkAvail(name2Check) {   // this is called when username field onchange triggered
+        // if nothing typed, do nothing
+        if (name2Check == "") {
+            console.log("nothing typed, do nothing");
+            return;}
+
+        // create new AJAX object and query /check to check T/F on username availability
+        var ajax = new XMLHttpRequest();
+        ajax.onreadystatechange = function() {
+            if (ajax.readyState == 4 && ajax.status == 200) {
+                nameAvail = ajax.responseText;
+                console.log("nameAvail:", nameAvail);
+            }        };
+
+        // open the requested file & transmit data
+        ajax.open("GET", "/check?username=" + name2Check, true);    // will give JSON obj of T/F
+        ajax.send();
+    }
+
+    document.querySelector("form").onsubmit = function(e) {
+        // check if nameAvail
+        nameAvail = JSON.parse(nameAvail);   // parsing JSON object nameAvail back into original dataType, which was boolean
+        if (nameAvail == false) { // would be great if i can erase the fields too
+            alert("Sorry, name unavailable.  Choose new name!");
+            return false;   }
+        // password checks are done in application.py /register route
+        return;
+     }
+     </script>
+{% endblock %}
+
+
+
+
+<!--
+SPECIFICATIONS from pset
+
+Here in register.html...
+check for username dupes via Ajax to query /check
+you can prevent submission of a form with event.preventDefault(), and once validated programatically induce submission with submit()
+I also used return false after I'm done temporary checking with preventDefault()
+
+if username/passwords blank, alert via 'required' in html
+if username duplicate, alert
+
+-------
+
+submit via POST to /register, where you'll...
+if password(s) don't match, apology
+if password doesn't fit criteria, apology
+INSERT new user into users, storing pswrd as a hash, w/ werkzeug.security's generate_password_hash(password)
+manually check to make sure it's in phpLiteAdmin
+-->

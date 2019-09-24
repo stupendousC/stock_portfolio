@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Here are your quotes
+{% endblock %}
+
+{% block main %}
+    <h3>Here are your quotes</h3><br>
+
+    <table id="quotesTable" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+            <tr id="headerRow">
+                    {% for header in headerRow %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+            </tr>
+        </thead>
+
+    <form action="/fastBuy", method="POST">
+        <tbody id="bodyRows">
+
+                {% for i in range(quotes|length) %}
+                <tr>
+                <td>{{ quotes[i]['symbol'] }}</td>
+                <td>{{ quotes[i]['name'] }}</td>
+                <td id='{{priceIds[i]}}'>${{ quotes[i]['price'] }}</td>
+                <td><input name='{{qtyNames[i]}}' type="text" placeholder="how many?" min="0" step="1" onchange="calcCost(this.name, this.value)" autofocus></td>
+                <td id='{{totalCostIds[i]}}'></td>
+                </tr>
+                {% endfor %}
+
+                <tr style="background-color:lightpink">
+                {% for j in range(3) %}
+                <td></td>
+                {% endfor %}
+                <td><b>GRAND TOTAL</b></td>
+                <b><td id="grandTotal" name="grandTotal">0</td></b>
+                </tr>
+
+        </tbody>
+    </table>
+
+    <div class="alert alert-primary" id="cashStatement">You have {{cash}} in your account</div>
+    <div class="alert alert-warning" id="msg" hidden></div>
+    <button class="btn btn-secondary" type="reset">Reset</button>
+    <button class="btn btn-primary" type="submit">Buy stocks</button>
+    </form>
+
+
+
+<script>
+// global variables
+var grandTotalField = document.getElementById("grandTotal");
+var msg = document.getElementById("msg");
+
+$( document ).ready(function() {
+    console.log("page loaded");
+});
+
+
+
+function calcCost(name, qtyStr) {
+    if (msg.hidden == false) {
+        $("#msg").attr("hidden",true);  // prev msg may not apply to new qty entered
+    }
+
+    console.log("\nBUY", qtyStr, "of", name);
+    // if qtyStr is blanked out manually
+    if (qtyStr == ""){
+        console.log("Treating it as zeroing out the order");
+        qtyStr = 0;
+    }
+
+    // Find out which row we're on
+    var rowNum = 0;
+    if (name[9]) {
+        console.log("what kind of person asks for 100+ quotes at a time?");
+        alert("Ain't nobody got no time for triple digit quote lookups!");
+        return false;
+    }
+    else if (name[8]) {
+        rowNum += parseInt(name[8]);
+        rowNum += parseInt(name[7])*10;
+    }
+    else if (name){
+        rowNum += parseInt(name[7]);
+    }
+    else {console.log("this should NOT be happening");}
+    //console.log("rowNumber", rowNum);
+
+    //get the single share price from that row, as a float number
+    var priceId = "priceId"+rowNum;
+    var price = document.getElementById(priceId);
+    price = remove$(price.innerHTML);
+    //console.log("the price is", price);
+
+    //get the total price of the qty u want
+    var totalCostId = "totalCostId"+rowNum;
+    var totalCostField = document.getElementById(totalCostId);
+    var prevTotalCost = totalCostField.innerHTML;
+    if (prevTotalCost == ""){
+        //console.log("prevTC was blank");
+        prevTotalCost = 0.00;    }
+    else {
+        prevTotalCost = remove$(totalCostField.innerHTML);
+        prevTotalCost = parseFloat(prevTotalCost.toFixed(2));
+    }
+    var newTotalCost = (parseFloat(qtyStr)*parseFloat(price));
+    newTotalCost = parseFloat(newTotalCost.toFixed(2));
+    var grandTotalAdj = 0;
+
+    // if qtyStr is overwriting a previous amount, then need to adjust grandTotal!
+    //console.log("prevTC", prevTotalCost, typeof(prevTotalCost), "vs. newTC", newTotalCost, typeof(newTotalCost));
+
+    grandTotalAdj = newTotalCost - prevTotalCost;
+    //console.log("will adjust GT by", grandTotalAdj);
+
+    // update total cost field
+    //console.log("totalCost is", newTotalCost);
+    totalCostField.innerHTML = "$"+newTotalCost;
+
+    //update grandTotal
+    var grandTotal = grandTotalField.innerHTML;
+    //console.log("grandTotal innerHTML", grandTotal);
+    grandTotal = remove$(grandTotal);
+    grandTotal += parseFloat(grandTotalAdj);
+
+    console.log("grandTotal is now", grandTotal);
+    grandTotalField.innerHTML = "$"+grandTotal.toFixed(2);
+}
+
+document.querySelector("form").onsubmit = function(e) {
+    //e.preventDefault();   // turn back as needed for error checks
+    var grandTotal = remove$(grandTotalField.innerHTML);
+    var cash = '{{cash}}';
+    cash = remove$(cash);
+    console.log("cash vs grandtotal", cash, grandTotal);
+    if (cash < grandTotal){
+        $('#msg').removeAttr('hidden');
+        msg.innerHTML = "You need more money!";
+        return true;
+        //return false;     SERVER-SIDE CHECKING!!!
+    }
+    if (grandTotal == 0){
+        $('#msg').removeAttr('hidden');
+        msg.innerHTML = "You didn't place any orders...";
+        return true;
+        //return false;     SERVER-SIDE CHECKING!!!
+    }
+
+    console.log("SENDING to /fastBuy");
+    var jsonGT = {"grandTotal":grandTotal};
+    jsonGT = JSON.stringify(jsonGT);
+    //$.post("/fastBuy", jsonGT, function() {});
+    return true;
+}
+
+
+
+
+
+function remove$(dollarStr){
+    // Takes a dollarStr possibly as $12.34, and returns a float number.
+    // also remove commas
+    var result = "";
+    for (var i=0; dollarStr[i]; i++){
+        if (dollarStr[i] == "$" || dollarStr[i] == ","){
+            continue;
+        }
+        result += dollarStr[i];
+    }
+    return (parseFloat(result));
+}
+
+</script>
+
+
+{% endblock %}
+
+
+<!--
+
+
+DOESN'T LOOK LIKE I NEED TO DO THIS ANYMORE>...
+<script>
+    console.log("Do this first");
+    // import quotes data outside of jinja, to JS/html
+    var quotesJSON = '{{ quotes| tojson }}';
+    console.log(quotesJSON);
+    var allIdNamesJSON = '{{ allIdNames | tojson}}';
+    console.log(allIdNamesJSON);
+</script>
+-->

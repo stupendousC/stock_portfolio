@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Your Transaction History
+{% endblock %}
+
+{% block main %}
+    <h3>Your Transaction History</h3><br>
+
+    <table id="hxTable" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+            <tr id="headerRow">
+                    {% for header in headerRow %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+            </tr>
+        </thead>
+
+        <tbody id="bodyRows">
+            <tr>
+                {% for row in history %}
+
+                    {% if row['buySell'] == "B" %}
+                    <tr style="background-color: lightyellow">
+                    {% for key in row %}
+                    <td>{{ row[key] }}</td>
+                    {% endfor %}
+                    </tr>
+                    {% endif %}
+
+                    {% if row['buySell'] == "S" %}
+                    <tr style="background-color: palegreen">
+                    {% for key in row %}
+                    <td>{{ row[key] }}</td>
+                    {% endfor %}
+                    </tr>
+                    {% endif %}
+
+                    {% if row['buySell'] == "$" %}
+                    <tr style="background-color: lightpink">
+                    {% for key in row %}
+                    <td>{{ row[key] }}</td>
+                    {% endfor %}
+                    </tr>
+                    {% endif %}
+
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+
+{% endblock %}
+
+

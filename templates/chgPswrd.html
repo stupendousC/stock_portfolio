@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Change Password
+{% endblock %}
+
+{% block main %}
+    <h3>Change Password</h3><br>
+    <form action="/chgPswrd" method="post">
+        <div class="form-group">
+            <input class="form-control" name="password" id = "password" placeholder="Password" type="password" autofocus required><br><br>
+            <input class="form-control" name="password2" id = "password2" placeholder="Password Confirmation" type="password" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Change Password</button>
+    </form>
+
+    <script>
+    document.querySelector("form").onsubmit = function(e) {
+        console.log("password checks are done in application.py /register route");
+        return;
+     }
+     </script>
+{% endblock %}
+
+
+
+
+<!--
+SPECIFICATIONS from pset
+
+Here in register.html...
+check for username dupes via Ajax to query /check
+you can prevent submission of a form with event.preventDefault(), and once validated programatically induce submission with submit()
+I also used return false after I'm done temporary checking with preventDefault()
+
+if username/passwords blank, alert via 'required' in html
+if username duplicate, alert
+
+-------
+
+submit via POST to /register, where you'll...
+if password(s) don't match, apology
+if password doesn't fit criteria, apology
+INSERT new user into users, storing pswrd as a hash, w/ werkzeug.security's generate_password_hash(password)
+manually check to make sure it's in phpLiteAdmin
+-->
